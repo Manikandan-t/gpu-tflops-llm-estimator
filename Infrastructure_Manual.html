@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Infrastructure Engineering Manual | GenAI Infra</title>
+<style>
+:root {
+  --primary: #4f46e5;
+  --primary-dark: #3730a3;
+  --secondary: #7c3aed;
+  --accent: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --bg-page: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --bg-card: #ffffff;
+  --bg-soft: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --border: #e2e8f0;
+  --shadow: 0 10px 25px rgba(0,0,0,0.1);
+  --shadow-hover: 0 15px 35px rgba(79, 70, 229, 0.25);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg-page);
+  color: var(--text-main);
+  padding: 20px;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+h1 { color: white; text-align: center; margin-bottom: 8px; font-size: 2.4em; font-weight: 800; letter-spacing: -0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.tagline { color: rgba(255,255,255,0.9); text-align: center; font-size: 1.1em; margin-bottom: 30px; font-weight: 500; }
+
+/* === WORKFLOW CARDS === */
+.workflow-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.workflow-card {
+  background: var(--bg-card); border-radius: 16px; padding: 24px 20px;
+  box-shadow: var(--shadow); cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center; border: 2px solid transparent; display: flex; flex-direction: column; align-items: center;
+}
+.workflow-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); border-color: var(--primary); }
+.workflow-icon { font-size: 2.4em; margin-bottom: 12px; }
+.workflow-title { font-size: 1.15em; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+.workflow-desc { font-size: 0.88em; color: var(--text-muted); line-height: 1.4; }
+
+.hero-card {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white; border: none; grid-column: 1 / -1; flex-direction: row; text-align: left; padding: 24px 32px;
+}
+.hero-card .workflow-title { color: white; font-size: 1.4em; margin-bottom: 8px; }
+.hero-card .workflow-desc { color: rgba(255,255,255,0.9); font-size: 1em; }
+.hero-card:hover { border-color: transparent; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
+
+/* === FLOW PANELS === */
+.flow-panel { background: var(--bg-card); border-radius: 16px; padding: 32px; box-shadow: var(--shadow); margin-bottom: 25px; display: none; }
+.flow-panel.active { display: block; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+h2 { color: var(--primary-dark); font-size: 1.8em; margin-bottom: 16px; border-bottom: 3px solid var(--primary); padding-bottom: 8px; font-weight: 800; letter-spacing: -0.5px; }
+h3 { color: var(--secondary); font-size: 1.3em; margin-top: 28px; margin-bottom: 14px; font-weight: 700; }
+h4 { color: var(--primary); font-size: 1.1em; margin-top: 20px; margin-bottom: 10px; font-weight: 700; }
+p { margin-bottom: 14px; }
+ul { margin-bottom: 14px; padding-left: 24px; }
+li { margin-bottom: 6px; }
+
+/* === FORM ELEMENTS & TOGGLES === */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+@media (max-width: 768px) { .form-row, .form-row-3 { grid-template-columns: 1fr; } }
+label { font-weight: 600; display: block; margin-bottom: 8px; color: var(--text-main); font-size: 0.95em; }
+.tooltip { border-bottom: 1px dotted var(--text-muted); cursor: help; color: var(--primary); }
+select, input[type="number"] { width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 10px; font-size: 0.95em; background: white; transition: all 0.2s; font-weight: 500; }
+select:focus, input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15); }
+
+.usecase-toggle { display: flex; background: var(--bg-soft); border: 2px solid var(--border); border-radius: 10px; overflow: hidden; }
+.usecase-btn { flex: 1; padding: 12px; font-weight: 700; font-size: 0.95em; border: none; background: transparent; cursor: pointer; color: var(--text-muted); transition: all 0.2s; border-right: 1px solid var(--border); }
+.usecase-btn:last-child { border-right: none; }
+.usecase-btn:hover { background: #e2e8f0; }
+.usecase-btn.active { background: var(--primary); color: white; }
+
+button.calc-btn { width: 100%; padding: 16px 24px; font-size: 1.1em; font-weight: 800; border: none; border-radius: 12px; cursor: pointer; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; margin-top: 10px; transition: all 0.2s; box-shadow: 0 4px 6px rgba(79,70,229,0.2); }
+button.calc-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(79,70,229,0.3); }
+.back-btn { background: transparent; border: 2px solid var(--border); color: var(--text-muted); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9em; font-weight: 700; margin-bottom: 20px; transition: all 0.2s; }
+.back-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--bg-soft); }
+
+/* === MATH & INFO BOXES === */
+.math-box { background: #f8fafc; padding: 20px; border-left: 4px solid var(--primary); border-radius: 8px; font-family: 'SF Mono', Consolas, monospace; font-size: 0.9em; margin: 16px 0; line-height: 1.8; overflow-x: auto; border: 1px solid #e2e8f0; }
+.math-box strong { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--primary-dark); font-size: 1.05em; }
+.tip-box { background: #f5f3ff; border-left: 4px solid var(--secondary); padding: 16px 20px; border-radius: 8px; margin: 16px 0; font-size: 0.95em; }
+.info-box { background: #eff6ff; border-left: 4px solid var(--info); padding: 16px 20px; border-radius: 8px; margin: 16px 0; font-size: 0.95em; }
+.result-warn { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 2px solid var(--warning); border-radius: 12px; padding: 20px; margin-top: 20px; font-size: 0.95em; }
+.result-error { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 2px solid var(--danger); border-radius: 12px; padding: 20px; margin-top: 20px; }
+
+/* === TABLES === */
+.table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 10px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 0.92em; background: white; }
+th { background: #f1f5f9; font-weight: 700; color: var(--text-main); padding: 12px 16px; text-align: left; border-bottom: 2px solid var(--border); }
+td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+tr:last-child td { border-bottom: none; }
+tr:hover { background: #f8fafc; }
+td.num { font-family: 'SF Mono', Consolas, monospace; font-weight: 600; }
+td.center, th.center { text-align: center; }
+.best-row { background: #ecfdf5 !important; }
+
+/* === GRIDS & CARDS === */
+.spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 20px 0; }
+.spec-card { background: white; border: 2px solid var(--border); border-radius: 12px; padding: 20px; transition: all 0.2s; }
+.spec-card:hover { border-color: var(--primary); box-shadow: var(--shadow); transform: translateY(-2px); }
+.spec-card h4 { margin-top: 0; color: var(--primary-dark); font-size: 1.15em; font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px;}
+.spec-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9em; }
+.spec-row .k { color: var(--text-muted); }
+.spec-row .v { font-weight: 700; color: var(--text-main); }
+
+.metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
+.result-box { border-radius: 16px; padding: 28px; text-align: center; border: 2px solid; }
+.box-compute { background: linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%); border-color: var(--info); }
+.box-memory { background: linear-gradient(135deg, #f0fdf4 0%, #d1fae5 100%); border-color: var(--accent); }
+.metric-val { font-size: 2.8em; font-weight: 800; margin-bottom: 4px; line-height: 1.1; letter-spacing: -1px; }
+.box-compute .metric-val { color: #1e40af; }
+.box-memory .metric-val { color: #065f46; }
+.metric-label { font-size: 1.05em; font-weight: 700; }
+.metric-sub { font-size: 0.9em; margin-top: 8px; opacity: 0.85; font-weight: 500; }
+
+.observability-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.obs-card { background: var(--bg-soft); border: 2px solid var(--border); padding: 20px; border-radius: 12px; text-align: center; }
+.obs-val { font-family: 'SF Mono', Consolas, monospace; font-size: 1.8em; font-weight: 800; color: var(--primary-dark); margin-bottom: 4px; }
+.obs-label { font-size: 0.85em; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* === ROOFLINE CHART === */
+.roofline-container { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-top: 24px; text-align: center; }
+canvas { max-width: 100%; height: auto; }
+.roofline-helper { margin-top: 12px; font-size: 0.9em; color: var(--text-muted); font-weight: 600; display: flex; justify-content: center; gap: 20px; }
+
+/* === PICKER CARDS === */
+.rec-card { background: white; border: 2px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; transition: all 0.2s; }
+.rec-card:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+.rec-card.best { border-color: var(--accent); background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); border-width: 2px; }
+.rec-card.best::before { content: "⭐ RECOMMENDED"; display: inline-block; background: var(--accent); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75em; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px; }
+.rec-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+.rec-name { font-size: 1.2em; font-weight: 800; color: var(--text-main); }
+.rec-price { font-size: 1em; font-weight: 700; color: var(--primary); }
+.rec-reason { font-size: 0.95em; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
+
+/* === LAYERED MANUAL CSS === */
+.archetype-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin: 20px 0; }
+.archetype-card { background: var(--bg-soft); border: 2px solid var(--border); border-radius: 12px; padding: 20px; }
+.archetype-card h4 { margin-top: 0; color: var(--primary-dark); border-bottom: 2px solid var(--border); padding-bottom: 8px; font-size:1.15em; }
+
+.rule-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 20px 0; }
+.rule-card { background: #f0fdf4; border: 2px solid var(--accent); border-radius: 12px; padding: 20px; }
+.rule-card h4 { margin-top: 0; color: #065f46; font-size: 1.15em; margin-bottom: 8px; }
+.rule-card p { margin-bottom: 0; color: #064e3b; font-size: 0.95em; }
+
+.hard-rule-box { background: #fffbeb; border: 2px solid var(--warning); border-radius: 12px; padding: 20px; margin: 20px 0; font-size: 1.05em; }
+.hard-rule-box div { margin-bottom: 8px; }
+
+.debug-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+.debug-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+.debug-problem { font-weight: 800; color: var(--danger); margin-bottom: 8px; font-size: 1.05em; border-bottom: 1px solid var(--border); padding-bottom: 6px;}
+.debug-solution { color: var(--text-main); font-size: 0.95em; line-height: 1.6; }
+.debug-solution span { color: var(--text-muted); font-family: monospace; }
+
+.scenario-card { background: #fffbeb; border: 2px solid var(--warning); border-radius: 12px; padding: 20px; margin-bottom: 16px;}
+.scenario-card h4 { margin-top: 0; color: #b45309; }
+.scenario-card p { margin-bottom: 0; color: #92400e; }
+.scenario-card ul { color: #92400e; }
+
+.analogy-box { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-left: 4px solid var(--info); padding: 20px; border-radius: 12px; margin: 20px 0; font-style: italic; border: 1px solid var(--border); }
+.analogy-box strong { color: var(--primary-dark); font-style: normal; }
+
+.adv-note { background: #f1f5f9; border-left: 4px solid var(--text-muted); padding: 16px 20px; margin: 16px 0; font-size: 0.9em; font-family: 'SF Mono', Consolas, monospace; border-radius: 0 8px 8px 0; }
+
+.viz-box { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 24px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+.viz-row { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+.viz-label { width: 120px; font-weight: 700; color: var(--text-main); }
+.viz-bar { height: 36px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9em; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+.viz-compute { background: var(--info); width: 100%; }
+.viz-memory { background: var(--accent); width: 25%; }
+
+/* === COLLAPSIBLE & BADGES === */
+.collapsible { background: var(--bg-soft); border: 2px solid var(--border); border-radius: 10px; padding: 16px 20px; cursor: pointer; font-weight: 700; color: var(--primary-dark); margin: 12px 0; font-size: 1.05em; user-select: none; transition: all 0.2s; }
+.collapsible:hover { background: #e0e7ff; border-color: #c7d2fe; }
+.collapsible::before { content: "▶ "; display: inline-block; transition: transform 0.2s; font-size: 0.8em; color: var(--primary); margin-right: 12px; }
+.collapsible.open::before { transform: rotate(90deg); }
+.collapse-body { display: none; padding: 24px; font-size: 0.98em; border-left: 4px solid var(--primary); background: white; margin-bottom: 20px; border-radius: 0 8px 8px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.collapse-body.open { display: block; animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75em; font-weight: 800; margin-left: 8px; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px; }
+.badge-moe { background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
+.badge-vlm { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+.cloud-pill { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.8em; font-weight: 700; margin-right: 4px; }
+.cloud-azure { background: #dbeafe; color: #1d4ed8; }
+.cloud-runpod { background: #fee2e2; color: #b91c1c; }
+.cloud-lambda { background: #fef3c7; color: #b45309; }
+
+.article-content h3 { border-bottom: 2px solid var(--border); padding-bottom: 8px; margin-top: 24px; color: var(--primary-dark); font-size: 1.25em; }
+.article-content h4 { font-size: 1.05em; color: var(--secondary); margin-top: 16px; margin-bottom: 8px; }
+.article-content p { margin-bottom: 16px; line-height: 1.7; color: #334155; }
+.article-content strong { color: #0f172a; }
+.article-content ul { line-height: 1.7; }
+
+.footer-note { background: rgba(255,255,255,0.95); border-radius: 12px; padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.9em; margin-top: 30px; font-weight: 500; }
+/* ==========================================================
+   PDF PRINT OPTIMIZATIONS
+   ========================================================== */
+@media print {
+  /* 1. Force all hidden pages to show */
+  #landing, .flow-panel {
+    display: block !important;
+    box-shadow: none !important;
+    page-break-after: always;
+    padding: 0 !important;
+  }
+
+  /* 2. Force all collapsible "Advanced Notes" to stay open */
+  .collapse-body {
+    display: block !important;
+    border-left: 3px solid var(--primary);
+    padding: 15px !important;
+    margin-bottom: 20px !important;
+  }
+  
+  .collapsible::before {
+    transform: rotate(90deg); /* Make arrows point down */
+  }
+
+  /* 3. Hide interactive buttons that don't work on paper */
+  .back-btn, .calc-btn, .quick-link-container, .workflow-card {
+    display: none !important;
+  }
+
+  /* 4. Prevent page breaks in the middle of important boxes */
+  .math-box, .rule-card, .archetype-card, .spec-card, .info-box, .result-warn, .result-error, table {
+    page-break-inside: avoid;
+  }
+
+  /* 5. Clean up background for PDF rendering */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  h2 {
+    page-break-before: always;
+    margin-top: 0 !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>🎯 Infrastructure Engineering Manual</h1>
+<p class="tagline">GenAI Physics, Capacity Planning, and Throughput Estimation</p>
+
+<!-- ==========================================================
+     LANDING (Restructured Layout)
+     ========================================================== -->
+<div id="landing">
+
+<div class="workflow-card hero-card" onclick="showFlow('quickstart')" style="cursor:pointer;">
+  <div style="flex-grow: 1;">
+    <div class="workflow-title">🚀 New to GenAI Infra? Start Here</div>
+    <div class="workflow-desc">A 5-minute guided workflow, golden production defaults, and the 'What Matters' cheat sheet.</div>
+  </div>
+  <div style="font-size: 2em;">→</div>
+</div>
+
+<div class="workflow-grid" style="grid-template-columns: 1fr 1fr; margin-top: 16px;">
+  <div class="workflow-card" style="background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%); border-color: var(--info);" onclick="showFlow('fundamentals')">
+    <div class="workflow-icon">🧠</div>
+    <div class="workflow-title">The Engineering Manual</div>
+    <div class="workflow-desc">Mental models, Workload Archetypes, the Batch vs. Latency tradeoff, and advanced hardware physics.</div>
+  </div>
+  <div class="workflow-card" style="background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%); border-color: var(--warning);" onclick="showFlow('pitfalls')">
+    <div class="workflow-icon">⚠️</div>
+    <div class="workflow-title">Pitfalls & Debugging</div>
+    <div class="workflow-desc">Failure mode debugging mapping, common misconceptions, and real-world benchmark data.</div>
+  </div>
+</div>
+
+<div class="workflow-grid" style="grid-template-columns: repeat(3, 1fr);">
+  <div class="workflow-card" onclick="showFlow('speed')">
+    <div class="workflow-icon">⚡</div>
+    <div class="workflow-title">Throughput & Metrics</div>
+    <div class="workflow-desc">Custom batch/context modeling, ITL scaling, and Roofline charts.</div>
+  </div>
+  <div class="workflow-card" onclick="showFlow('picker')">
+    <div class="workflow-icon">🧭</div>
+    <div class="workflow-title">Hardware Router</div>
+    <div class="workflow-desc">Find GPUs (PCIe & SXM) that physically fit your exact memory needs.</div>
+  </div>
+  <div class="workflow-card" onclick="showFlow('cost')">
+    <div class="workflow-icon">💰</div>
+    <div class="workflow-title">TCO & Cloud Cost</div>
+    <div class="workflow-desc">Monthly OpEx modeling across major cloud providers.</div>
+  </div>
+</div>
+
+<div class="workflow-grid" style="grid-template-columns: 1fr;">
+  <div class="workflow-card" style="flex-direction: row; text-align: left; padding: 16px 24px;" onclick="showFlow('specs')">
+    <div class="workflow-icon" style="margin-bottom: 0; margin-right: 20px;">📋</div>
+    <div>
+      <div class="workflow-title" style="margin-bottom: 2px;">GPU Spec Sheets</div>
+      <div class="workflow-desc">Verified Dense TFLOPS, bandwidth, and architecture info (A100 to B300 Ultra).</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /landing -->
+
+<!-- ==========================================================
+     FLOW: QUICKSTART
+     ========================================================== -->
+<div class="flow-panel" id="flow-quickstart">
+<button class="back-btn" onclick="goHome()">← Back to workflows</button>
+<h2>🚀 The 5-Minute Quick Start</h2>
+
+<div class="info-box">
+  <strong>You only need to care about two user metrics:</strong><br>
+  1. <strong>TTFT</strong> (Time-To-First-Token): First token delay. Crucial for RAG/Agents.<br>
+  2. <strong>ITL</strong> (Inter-Token Latency): Stream speed. Crucial for Chat APIs.<br>
+  <em>Everything else (MFU, MBU) is internal plumbing for the engineers.</em>
+</div>
+
+<h3 style="margin-top: 30px;">Step-by-Step Execution Flow</h3>
+<div class="article-content">
+  <p>Don't guess your hardware. Follow this deterministic workflow:</p>
+  <ol style="background: var(--bg-soft); padding: 20px 40px; border-radius: 12px; border: 1px solid var(--border);">
+    <li><strong>Identify workload:</strong> Is it Chat, RAG, or Batch? (Sets your latency goals).</li>
+    <li><strong>Choose model + context:</strong> (Sets your theoretical VRAM footprint).</li>
+    <li><strong>Check memory fit:</strong> Use the <em>Hardware Router</em>. Can it fit on a Single GPU?</li>
+    <li><strong>Estimate throughput:</strong> Use the <em>Throughput & Metrics</em> tool.</li>
+    <li><strong>Validate latency:</strong> Check TTFT / ITL under load. If it fails, tweak batch size.</li>
+    <li><strong>Choose hardware:</strong> Need TP? Ensure NVLink. Otherwise, PCIe is fine.</li>
+    <li><strong>Estimate cost:</strong> Use the <em>TCO</em> tool, factoring in the 20% autoscaling buffer.</li>
+  </ol>
+</div>
+
+<h3 style="margin-top: 30px;">🏆 Golden Defaults (Production Baselines)</h3>
+<p>If you don't know where to start, use these safe defaults in the calculators:</p>
+<div class="table-wrap">
+  <table>
+    <tr><th>Usecase</th><th>Batch</th><th>Context</th><th>KV Precision</th><th>Goal</th></tr>
+    <tr><td><strong>💬 Chat API</strong></td><td class="center">8–16</td><td class="center">4K</td><td class="center">FP8</td><td>Keep ITL low (Human reading speed)</td></tr>
+    <tr><td><strong>🤖 RAG / Agent</strong></td><td class="center">16–32</td><td class="center">32K</td><td class="center">FP8</td><td>Optimize TTFT (Fast response)</td></tr>
+    <tr><td><strong>📦 Batch</strong></td><td class="center">64–256</td><td class="center">8K</td><td class="center">INT4 / FP8</td><td>Max throughput (Ignore latency)</td></tr>
+  </table>
+</div>
+
+<h3 style="margin-top: 30px;">The "What Matters for WHAT" Cheat Sheet</h3>
+<div class="table-wrap">
+  <table>
+    <tr><th>Metric</th><th>Controlled By</th><th>Optimization Focus</th></tr>
+    <tr><td><strong>TTFT</strong> (First Token)</td><td>Prefill + Scheduler Queue</td><td><strong>TFLOPS</strong>, Prefix Caching, Batch Sizing</td></tr>
+    <tr><td><strong>ITL</strong> (Stream Speed)</td><td>Decode Loop</td><td><strong>Memory Bandwidth</strong></td></tr>
+    <tr><td><strong>Throughput</strong> (Sys tok/s)</td><td>Batch Size</td><td><strong>Total VRAM</strong> (to fit larger batches)</td></tr>
+    <tr><td><strong>Cost</strong> ($ / 1M tok)</td><td>GPU Utilization</td><td><strong>Autoscaling</strong> & Warm Pools</td></tr>
+  </table>
+</div>
+
+</div>
+
+<!-- ==========================================================
+     FLOW: THE ENGINEERING MANUAL (FUNDAMENTALS)
+     ========================================================== -->
+<div class="flow-panel" id="flow-fundamentals">
+<button class="back-btn" onclick="goHome()">← Back to workflows</button>
+<h2>🧠 The Infrastructure Engineering Manual</h2>
+
+<div class="result-warn" style="margin-bottom: 20px;">
+  <strong>⚠️ Model vs. Reality Disclaimer:</strong> These calculations provide first-order physics estimates. Real-world performance will vary based on kernel efficiency, scheduler queueing dynamics, and workload distribution.
+</div>
+
+<div class="info-box" style="border-left-color: var(--text-muted); background: white; border: 1px solid var(--border);">
+  <strong>What this manual assumes:</strong> Standard Transformer architectures (Llama/Mistral/Gemma), highly optimized serving kernels (vLLM/TRT-LLM), and no speculative decoding.
+</div>
+
+<h3 style="margin-top: 30px; color: var(--primary-dark);">Layer 1: Core Mental Models</h3>
+
+<div class="hard-rule-box">
+  <div style="font-size: 1.1em; color: var(--primary-dark); font-weight: 800; margin-bottom: 12px; border-bottom: 2px solid var(--border); padding-bottom: 8px;">The Multi-GPU Decision Tree</div>
+  <div><strong>1.</strong> If model fits in 1 GPU → <strong>ALWAYS use 1 GPU</strong></div>
+  <div><strong>2.</strong> If not → <strong>Quantize first (FP8 / INT4)</strong></div>
+  <div><strong>3.</strong> If still not → <strong>Use Tensor Parallelism (Only with NVLink / SXM)</strong></div>
+  <div style="color: var(--danger); margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--danger);"><strong>NEVER</strong> use Tensor Parallelism over PCIe unless absolutely forced.</div>
+</div>
+
+<div class="rule-grid">
+  <div class="rule-card">
+    <h4>Rule 1: Bandwidth > TFLOPS for Decode</h4>
+    <p>Generating text is fundamentally memory-bound. A GPU with fewer TFLOPS but a wider data highway (HBM Bandwidth) will generate text faster.</p>
+  </div>
+  <div class="rule-card">
+    <h4>Rule 2: KV Cache > Model Weights</h4>
+    <p>KV Cache is the memory used to remember conversation. It grows massively with (batch × context). At 128K context, it easily exceeds the model itself.</p>
+  </div>
+</div>
+
+<div class="viz-box">
+  <h4 style="margin-top:0;">Visualizing the Bottleneck: Prefill vs. Decode</h4>
+  <p>LLM generation happens in two distinct phases with entirely different physics:</p>
+  <div class="viz-row">
+    <div class="viz-label">Prefill Phase<br><span style="font-size:0.8em; color:var(--text-muted); font-weight:normal;">(Processing Prompt)</span></div>
+    <div class="viz-bar viz-compute">Compute-Bound (Limited by TFLOPS)</div>
+  </div>
+  <div class="viz-row">
+    <div class="viz-label">Decode Phase<br><span style="font-size:0.8em; color:var(--text-muted); font-weight:normal;">(Generating Text)</span></div>
+    <div class="viz-bar viz-memory">Memory-Bound (Limited by Bandwidth)</div>
+  </div>
+</div>
+
+<h3 style="margin-top: 50px; color: var(--primary-dark);">Layer 2: Intermediate Operational Realities</h3>
+<p>Expand these sections to understand dynamic memory systems, cost scaling, and deployment decision trees.</p>
+
+<div class="collapsible" onclick="toggleCollapse(this)">1. What is a FLOP & Datacenter Architectures</div>
+<div class="collapse-body article-content">
+  <p><strong>TFLOPS (Tera Floating-point Operations Per Second)</strong> measures the raw mathematical muscle of the GPU. It represents how many trillions of calculations the processor can do in a single second.</p>
+  
+  <h3>CUDA Cores vs. Tensor Cores</h3>
+  <p><strong>CUDA Cores:</strong> General-purpose scalar processors. They compute one mathematical operation at a time (e.g., A × B). Excellent for game rendering, but far too slow for deep learning.</p>
+  <p><strong>Tensor Cores:</strong> Specialized matrix-math processors. A single Tensor Core performs a massive Matrix Multiply-Accumulate (MMA) operation in a single clock cycle. Since neural networks are fundamentally just giant matrices being multiplied together, Tensor Cores accelerate inference by orders of magnitude.</p>
+
+  <h3>Datacenter Architectures</h3>
+  <ul>
+    <li><strong>Ampere (A100):</strong> The workhorse of the previous generation. <strong>Limitation:</strong> Lacks native FP8 Tensor Cores. It processes math in FP16, missing out on massive throughput boosts.</li>
+    <li><strong>Hopper (H100, H200):</strong> Introduced native <strong>FP8 Tensor Cores</strong>, doubling math throughput with negligible accuracy loss. <em>H200 vs. H100:</em> The H200 has the exact same compute chip as the H100, but upgrades the memory to 141GB HBM3e at 4.8 TB/s, drastically improving text generation speed.</li>
+    <li><strong>Blackwell (B200, B300):</strong> Introduces a multi-die architecture and native <strong>FP4 Tensor Cores</strong>. Designed for multi-trillion parameter MoE models. The B300 Ultra pushes memory to 288GB, allowing massive 70B+ models to run on a single card without Tensor Parallelism.</li>
+  </ul>
+</div>
+
+<div class="collapsible" onclick="toggleCollapse(this)">2. Calculating the KV Cache & Paged Memory</div>
+<div class="collapse-body article-content">
+  <p>The KV Cache is the temporary memory used to "remember" the conversation context. At large contexts (e.g., 128K), it can easily consume more memory than the model itself.</p>
+  <div class="math-box">
+    <strong>Formula: KV Cache Size (Bytes per Request)</strong><br>
+    KV_Cache = 2 (K & V) × Layers × KV_Heads × Head_Dimension × Bytes_per_Param × Context_Length<br><br>
+    <em>Example (Llama-70B at 128K Context, FP16):</em><br>
+    2 × 80 × 8 × 128 × 2 bytes × 131,072 tokens = <strong>~42.9 GB per request!</strong>
+  </div>
+
+  <h3>KV Cache Reality: It's a Dynamic Memory System</h3>
+  <ul>
+    <li><strong>Tokens ≠ Words:</strong> A token is typically ~0.75 words (or ~4 characters). A 10,000-word document is ~13,300 tokens. This variance dictates your exact KV cache sizing and TTFT.</li>
+    <li><strong>Fragmentation & PagedAttention:</strong> Older systems allocated a contiguous block of memory for the max context length. Modern engines (vLLM) use <em>PagedAttention</em>, breaking the cache into small pages, eliminating fragmentation and allowing 2-4x more users per batch.</li>
+    <li><strong>Prefix Caching:</strong> If multiple users send the same system prompt (e.g., an Agent instruction), engines will compute the KV cache once and store it in a radix tree, dropping TTFT to near-zero for future hits.</li>
+  </ul>
+</div>
+
+<div class="collapsible" onclick="toggleCollapse(this)">3. Quantization Techniques & Tradeoffs</div>
+<div class="collapse-body article-content">
+  <p>Quantization compresses model weights from 16-bit (FP16) to 8-bit (FP8) or 4-bit (INT4). Dropping to FP8 doesn't just save memory; it <strong>doubles your memory bandwidth efficiency</strong>.</p>
+  
+  <div class="table-wrap">
+    <table>
+      <tr><th>Model Size</th><th class="center">FP16 (2 bytes/param)</th><th class="center">FP8 (1 byte/param)</th><th class="center">INT4 (0.5 bytes/param)</th></tr>
+      <tr><td>7-9B</td><td class="center num">14-18 GB</td><td class="center num">7-9 GB</td><td class="center num">3.5-4.5 GB</td></tr>
+      <tr><td>27-34B</td><td class="center num">54-68 GB</td><td class="center num">27-34 GB</td><td class="center num">13.5-17 GB</td></tr>
+      <tr><td>70-72B</td><td class="center num">140-144 GB</td><td class="center num">70-72 GB</td><td class="center num">35-36 GB</td></tr>
+      <tr><td>405B</td><td class="center num">810 GB</td><td class="center num">405 GB</td><td class="center num">202 GB</td></tr>
+    </table>
+  </div>
+
+  <h3>Available Techniques</h3>
+  <ul>
+    <li><strong>Native FP8:</strong> Hopper (H100) and Blackwell (B200) have <em>native</em> FP8 Tensor Cores. Processing is direct with zero overhead.</li>
+    <li><strong>AWQ (Activation-aware Weight Quantization):</strong> Fastest on vLLM. <em>Warning: Requires kernel fusion and may introduce dequantization overhead depending on the serving engine.</em></li>
+    <li><strong>GPTQ:</strong> Mature GPU option, with an extensive pre-quantized model library available on HuggingFace.</li>
+    <li><strong>GGUF:</strong> Best for CPU/Ollama. Do not use for high-throughput datacenter GPU serving.</li>
+  </ul>
+</div>
+
+<div class="collapsible" onclick="toggleCollapse(this)">4. Inference Frameworks & Continuous Batching</div>
+<div class="collapse-body article-content">
+  <p>Running LLMs via standard HuggingFace/Python is painfully slow. Production requires C++ serving engines with custom CUDA kernels.</p>
+  <ul>
+    <li><strong>vLLM:</strong> Invented <em>PagedAttention</em>. <strong>Problem Solved:</strong> Memory fragmentation. <strong>Use Case:</strong> General LLMs, rapid prototyping, and best-in-class support for Vision Language Models (VLMs).</li>
+    <li><strong>TensorRT-LLM (TRT-LLM):</strong> NVIDIA's proprietary engine. <strong>Problem Solved:</strong> Hardware underutilization. <strong>Use Case:</strong> Locked-in, massive scale production squeezing every last drop of MFU out of Hopper GPUs.</li>
+    <li><strong>SGLang:</strong> Invented <em>RadixAttention</em>. <strong>Problem Solved:</strong> Redundant prompt processing. <strong>Use Case:</strong> Agentic workflows where a massive system prompt is sent repeatedly.</li>
+  </ul>
+</div>
+
+<h3 style="margin-top: 50px; color: var(--primary-dark);">Layer 3: Advanced Engineering Notes</h3>
+<p>Deep-dives into mathematical physics, kernel mechanics, and infrastructure constraints. Expand only if building custom inference stacks.</p>
+
+<div class="collapsible" onclick="toggleCollapse(this)">[Advanced Note] KV Cache Eviction Algorithms</div>
+<div class="collapse-body article-content">
+  <div class="adv-note">
+    <strong>What happens when KV is full?</strong><br>
+    When VRAM runs out, the engine must pause requests or <strong>evict</strong> cached tokens. Relying on continuous eviction destroys your TTFT.<br>
+    • <em>LRU (Least Recently Used):</em> Standard approach. Evicts the oldest cached pages first.<br>
+    • <em>StreamingLLM / Heavy Hitter Oracles (H2O):</em> Retains initial "attention sink" tokens and recent tokens, discarding the middle, enabling infinite context generation without OOM.<br>
+    • <em>Segment-based / Radix Eviction:</em> Evicts based on prefix-tree usage frequencies to maximize cache hit rates for Agentic prompts.
+  </div>
+</div>
+
+<div class="collapsible" onclick="toggleCollapse(this)">[Advanced Note] Tensor Parallelism Math & Networking</div>
+<div class="collapse-body article-content">
+  <div class="adv-note">
+    <strong>Physics-Based TP Penalty Formula:</strong><br>
+    During Tensor Parallelism, GPUs must synchronize via an AllReduce operation.<br>
+    <code>Comm_Time = 2 * ((N-1)/N) * (Activation_Size / Interconnect_Bandwidth)</code><br><br>
+    If <code>Interconnect_Bandwidth</code> is low (e.g., PCIe Gen4 at 64 GB/s), <code>Comm_Time</code> dominates the loop. <em>Real TP efficiency is often even lower than the pure bandwidth formula due to synchronization barriers and pipeline stalls.</em><br><br>
+    <strong>Networking Rule:</strong><br>
+    • NVLink → intra-node (TP)<br>
+    • InfiniBand → inter-node (PP)<br>
+    • Ethernet → worst case
+  </div>
+</div>
+
+<div class="collapsible" onclick="toggleCollapse(this)">[Advanced Note] FlashAttention & Kernel Mechanics</div>
+<div class="collapse-body article-content">
+  <div class="adv-note">
+    <strong>Why 128K Context is Physically Possible:</strong><br>
+    Standard attention mechanisms scale quadratically $O(N^2)$ in both compute and memory reads/writes. Generating attention scores for a 128K context would require hundreds of gigabytes of intermediate memory reads.<br><br>
+    <strong>FlashAttention</strong> solves this via "Tiling"—it computes the attention scores in small blocks that fit entirely within the GPU's ultra-fast SRAM, preventing the Tensor Cores from constantly waiting on the slow HBM VRAM.
+  </div>
+</div>
+
+<div class="collapsible" onclick="toggleCollapse(this)">[Advanced Note] Autoscaling, Storage I/O & True Cold Starts</div>
+<div class="collapse-body article-content">
+  <div class="adv-note">
+    <strong>The Autoscaling Trap:</strong><br>
+    Autoscaling an LLM to zero is an infrastructure trap. Cold starts aren't just about Docker pulls. Loading 140GB of weights from disk into HBM is heavily bottlenecked by storage I/O. A network-attached EBS volume capped at 1 GB/s will take over <strong>2.5 minutes</strong> just to move the weights into memory, long after the container boots. Always use local NVMe SSDs for model caching (capable of 5-7 GB/s).<br><br>
+    <strong>Solutions:</strong><br>
+    • <em>Predictive Autoscaling:</em> Use KEDA to spin up nodes 15 minutes <em>before</em> anticipated traffic.<br>
+    • <em>Warm Pools:</em> Maintain a baseline of idle instances (factor this 20% overhead into TCO calculations).
+  </div>
+</div>
+
+</div>
+
+<!-- ==========================================================
+     FLOW: PITFALLS & DEBUGGING
+     ========================================================== -->
+<div class="flow-panel" id="flow-pitfalls">
+<button class="back-btn" onclick="goHome()">← Back to workflows</button>
+
+<h2 style="color: var(--danger);">🛠️ The Production Debugger</h2>
+<p>If you see these failure modes in production, take these exact actions:</p>
+
+<div class="debug-grid">
+  <div class="debug-card">
+    <div class="debug-problem">❌ OOM (Out of Memory) Crash</div>
+    <div class="debug-solution">
+      <span>↳</span> Reduce Batch Size OR Context Length limits.<br>
+      <span>↳</span> Switch KV Cache precision to FP8 (halves memory footprint).<br>
+      <span>↳</span> Verify <code>jemalloc</code> is injected to prevent glibc fragmentation.
+    </div>
+  </div>
+  <div class="debug-card">
+    <div class="debug-problem">❌ High TTFT (&gt;2 seconds)</div>
+    <div class="debug-solution">
+      <span>↳</span> Reduce Batch Size (Decode contention is starving the prefill queue).<br>
+      <span>↳</span> Enable Prefix Caching (RadixAttention via SGLang) for Agentic prompts.
+    </div>
+  </div>
+  <div class="debug-card">
+    <div class="debug-problem">❌ Low GPU Utilization (&lt;40%)</div>
+    <div class="debug-solution">
+      <span>↳</span> Increase Batch Size.<br>
+      <span>↳</span> Check if the engine is using Continuous (In-Flight) batching rather than Static batching.
+    </div>
+  </div>
+  <div class="debug-card">
+    <div class="debug-problem">❌ Good Throughput but Bad Latency</div>
+    <div class="debug-solution">
+      <span>↳</span> Scheduler issue. You are optimizing for batching at the expense of fairness. Tune engine max_batch constraints down.
+    </div>
+  </div>
+</div>
+
+<h2 style="margin-top: 40px;">⚠️ The 4 Critical Pitfalls of LLM Capacity Planning</h2>
+
+<div class="result-warn">
+  <h4>Pitfall 1: "More TFLOPS = faster LLM inference"</h4>
+  <p>A GPU with 100 TFLOPS and 4 TB/s bandwidth will outperform one with 200 TFLOPS and 2 TB/s for most inference workloads. During decode, the GPU computes one token at a time, reading the entire model from memory each step. The H200 outperforms H100 by ~1.9× on Llama-70B despite identical compute — purely due to bandwidth.</p>
+</div>
+
+<div class="result-error">
+  <h4>Pitfall 2: "Sparsity TFLOPS reflect real-world performance"</h4>
+  <p>NVIDIA's Hopper datasheets quote "with sparsity" as the headline number, which is 2× the dense figure. Most models do not use 2:4 structured sparsity. Always use the dense number for LLM serving.</p>
+</div>
+
+<div class="info-box" style="border-left-color: var(--secondary);">
+  <h4>Pitfall 3: "Batch size doesn't matter for throughput planning"</h4>
+  <p>The difference between batch=1 and batch=64 can be 64× in total throughput in the memory-bound regime, because weight-loading cost is amortized across all batch items. Any calculator that estimates throughput without asking about batch size and serving scenario will produce misleading results.</p>
+</div>
+
+<div class="result-warn">
+  <h4>Pitfall 4: "Buy the GPU with the most memory"</h4>
+  <p>Memory capacity is necessary but not sufficient. The RTX PRO 6000 has 96 GB GDDR7 — enough for a 70B FP8 model with room — but its 1.597 TB/s bandwidth (3× lower than H200) makes it severely memory-bound for LLM serving. You'll get the model to fit, but throughput will disappoint. For serving, prioritize bandwidth over capacity beyond what your model needs.</p>
+</div>
+
+<h3 style="margin-top: 40px;">📊 Real-World Benchmarks (Production Data)</h3>
+<p>Benchmarks from highly optimized TensorRT-LLM and vLLM production environments. <strong>Benchmark Config: 1024 Input / 128 Output Tokens. Batch Size = 128 (where memory permits).</strong> Metrics measured in Output Tokens Per Second (System Decode Throughput).</p>
+<div class="table-wrap">
+  <table>
+    <tr><th>Model</th><th>Hardware Config</th><th class="center">Precision</th><th class="center">Tokens / Sec</th><th>Observation</th></tr>
+    <tr><td>Llama 3 8B</td><td>1x A100 80GB (PCIe)</td><td class="center">BF16</td><td class="center num">~110</td><td>Memory bandwidth bottlenecked (1.93 TB/s)</td></tr>
+    <tr><td>Llama 3 8B</td><td>1x H100 (SXM)</td><td class="center">FP8</td><td class="center num">~460</td><td>4x speedup due to FP8 bandwidth efficiency</td></tr>
+    <tr><td>Gemma 4 27B</td><td>1x H200 (SXM)</td><td class="center">FP8</td><td class="center num">~210</td><td>Native FP8 support drastically increases throughput.</td></tr>
+    <tr><td>Llama 3 70B</td><td>4x A100 80GB (PCIe)</td><td class="center">BF16</td><td class="center num">~65</td><td>Severe PCIe Tensor Parallelism network penalty</td></tr>
+    <tr><td class="best-row">Llama 3 70B</td><td class="best-row">1x H200 (SXM)</td><td class="best-row center">FP8</td><td class="best-row center num">~180</td><td class="best-row"><strong>Zero TP penalty. Huge bandwidth (4.8 TB/s)</strong></td></tr>
+    <tr><td>Qwen2.5-VL 72B</td><td>2x H100 (SXM)</td><td class="center">FP8</td><td class="center num">~165</td><td>Vision encoder memory limits batch size, but NVLink maintains fast decode.</td></tr>
+    <tr><td>Llama 3.1 405B</td><td>8x B200 (HGX)</td><td class="center">FP4</td><td class="center num">~380</td><td>Over 3x speedup via FP4 native routing and 8 TB/s HBM</td></tr>
+  </table>
+</div>
+
+</div>
+
+<!-- ==========================================================
+     FLOW: SPEED & METRICS
+     ========================================================== -->
+<div class="flow-panel" id="flow-speed">
+<button class="back-btn" onclick="goHome()">← Back to workflows</button>
+<h2>⚡ Throughput, Math & Observability</h2>
+<p>Map hardware capabilities to mathematical formulas, and formulas to user-facing latency metrics. Visualizes constraints via dynamic Roofline plotting.</p>
+
+<div class="form-row">
+  <div style="grid-column: 1 / -1;">
+    <label>Workload Archetype (Auto-configures defaults)</label>
+    <div class="usecase-toggle">
+      <button class="usecase-btn" onclick="setUsecase('chat', 's_')" id="s_btn_chat">💬 Chat API</button>
+      <button class="usecase-btn" onclick="setUsecase('rag', 's_')" id="s_btn_rag">🤖 RAG / Agent</button>
+      <button class="usecase-btn active" onclick="setUsecase('batch', 's_')" id="s_btn_batch">📦 Batch</button>
+    </div>
+    <input type="hidden" id="s_usecase" value="batch">
+  </div>
+</div>
+
+<div class="form-row">
+  <div>
+    <label>GPU Architecture (Includes PCIe/SXM routing)</label>
+    <select id="s_gpu">
+      <option value="a100_40_pcie">A100 PCIe (40GB, 1.55 TB/s)</option>
+      <option value="a100_80_pcie">A100 PCIe (80GB, 1.93 TB/s)</option>
+      <option value="a100_80_sxm">A100 SXM (80GB, 2.03 TB/s)</option>
+      <option value="h100_pcie">H100 PCIe (80GB, 2.0 TB/s)</option>
+      <option value="h100_sxm" selected>H100 SXM (80GB, 3.35 TB/s)</option>
+      <option value="h200_nvl">H200 NVL PCIe (141GB, 4.8 TB/s)</option>
+      <option value="h200_sxm">H200 SXM (141GB, 4.8 TB/s)</option>
+      <option value="b200_hgx">B200 HGX SXM (180GB, 8.0 TB/s)</option>
+      <option value="b300_ultra">B300 Ultra SXM (288GB, 8.0 TB/s)</option>
+    </select>
+  </div>
+  <div>
+    <label>Model Architecture</label>
+    <select id="s_model">
+      <optgroup label="Gemma 4 Family">
+        <option value="gemma4_9b">Gemma 4 9B</option>
+        <option value="gemma4_27b">Gemma 4 27B</option>
+      </optgroup>
+      <optgroup label="Large Language Models">
+        <option value="llama7">Llama 7B (Dense)</option>
+        <option value="llama70" selected>Llama 70B (Dense, GQA)</option>
+        <option value="llama405">Llama 405B (Dense, GQA)</option>
+        <option value="mixtral">Mixtral 8x7B <span class="badge badge-moe">MoE</span></option>
+      </optgroup>
+      <optgroup label="Vision Language Models (VLMs)">
+        <option value="qwenvl7">Qwen2.5-VL 7B <span class="badge badge-vlm">VLM</span></option>
+        <option value="qwenvl72">Qwen2.5-VL 72B <span class="badge badge-vlm">VLM</span></option>
+        <option value="llava13">LLaVA-1.6 13B <span class="badge badge-vlm">VLM</span></option>
+        <option value="llava34">LLaVA-1.6 34B <span class="badge badge-vlm">VLM</span></option>
+      </optgroup>
+    </select>
+  </div>
+</div>
+
+<div class="form-row-3">
+  <div>
+    <label><span class="tooltip" title="Lower precision halves memory footprint and doubles bandwidth efficiency. FP8 is Hopper+ only.">Weight Precision [?]</span></label>
+    <select id="s_precision">
+      <option value="fp16">FP16 / BF16</option>
+      <option value="fp8" selected>FP8 (Production standard)</option>
+      <option value="int4">INT4 (Quantized)</option>
+    </select>
+  </div>
+  <div>
+    <label><span class="tooltip" title="Quantizing the KV cache independently saves massive VRAM at long contexts.">KV Cache Precision [?]</span></label>
+    <select id="s_kv_precision">
+      <option value="fp16">FP16 / BF16</option>
+      <option value="fp8" selected>FP8</option>
+      <option value="int4">INT4</option>
+    </select>
+  </div>
+  <div>
+    <label><span class="tooltip" title="Number of concurrent requests.">Custom Batch Size [?]</span></label>
+    <input type="number" id="s_batch" value="128" min="1" step="1">
+  </div>
+</div>
+<div class="form-row">
+  <div>
+    <label><span class="tooltip" title="Max prompt + response length. Determines total KV Cache allocation per request.">Custom Context Length [?]</span></label>
+    <input type="number" id="s_context" value="8192" min="512" step="512">
+    <div class="quick-link-container">
+      <span class="quick-link" onclick="document.getElementById('s_context').value=4096">4K</span>
+      <span class="quick-link" onclick="document.getElementById('s_context').value=8192">8K</span>
+      <span class="quick-link" onclick="document.getElementById('s_context').value=32768">32K</span>
+      <span class="quick-link" onclick="document.getElementById('s_context').value=131072">128K</span>
+    </div>
+  </div>
+</div>
+
+<button class="calc-btn" onclick="runSpeed()">⚡ Calculate Throughput & Metrics</button>
+
+<div id="speed-results" style="margin-top: 24px;"></div>
+</div>
+
+<!-- ==========================================================
+     FLOW: GPU PICKER
+     ========================================================== -->
+<div class="flow-panel" id="flow-picker">
+<button class="back-btn" onclick="goHome()">← Back to workflows</button>
+<h2>🧭 Hardware Router</h2>
+<p>Find the cheapest GPU configurations that will physically fit your exact memory requirements.</p>
+
+<div class="form-row">
+  <div style="grid-column: 1 / -1;">
+    <label>Workload Archetype (Auto-configures defaults & sorting)</label>
+    <div class="usecase-toggle">
+      <button class="usecase-btn active" onclick="setUsecase('chat', 'p_')" id="p_btn_chat">💬 Chat API</button>
+      <button class="usecase-btn" onclick="setUsecase('rag', 'p_')" id="p_btn_rag">🤖 RAG / Agent</button>
+      <button class="usecase-btn" onclick="setUsecase('batch', 'p_')" id="p_btn_batch">📦 Batch</button>
+    </div>
+    <input type="hidden" id="p_usecase" value="chat">
+  </div>
+</div>
+
+<div class="form-row">
+  <div>
+    <label>Model Architecture</label>
+    <select id="p_model">
+      <optgroup label="Gemma 4 Family">
+        <option value="gemma4_9b">Gemma 4 9B</option>
+        <option value="gemma4_27b">Gemma 4 27B</option>
+      </optgroup>
+      <optgroup label="Large Language Models">
+        <option value="llama7">Llama 7B</option>
+        <option value="llama70" selected>Llama 70B</option>
+        <option value="llama405">Llama 405B</option>
+        <option value="mixtral">Mixtral 8x7B <span class="badge badge-moe">MoE</span></option>
+      </optgroup>
+      <optgroup label="Vision Language Models (VLMs)">
+        <option value="qwenvl7">Qwen2.5-VL 7B <span class="badge badge-vlm">VLM</span></option>
+        <option value="qwenvl72">Qwen2.5-VL 72B <span class="badge badge-vlm">VLM</span></option>
+        <option value="llava13">LLaVA-1.6 13B <span class="badge badge-vlm">VLM</span></option>
+        <option value="llava34">LLaVA-1.6 34B <span class="badge badge-vlm">VLM</span></option>
+      </optgroup>
+    </select>
+  </div>
+  <div>
+    <label>Target Precision</label>
+    <select id="p_precision">
+      <option value="fp16">FP16</option>
+      <option value="fp8" selected>FP8</option>
+      <option value="int4">INT4</option>
+    </select>
+  </div>
+</div>
+<div class="form-row-3">
+  <div>
+    <label>KV Precision</label>
+    <select id="p_kv_precision">
+      <option value="fp16">FP16</option>
+      <option value="fp8" selected>FP8</option>
+    </select>
+  </div>
+  <div>
+    <label>Custom Batch Size</label>
+    <input type="number" id="p_batch" value="16" min="1" step="1">
+  </div>
+  <div>
+    <label>Custom Context Length</label>
+    <input type="number" id="p_context" value="4096" min="512" step="512">
+  </div>
+</div>
+
+<button class="calc-btn" onclick="runPicker()">🎯 Route Workload to GPUs</button>
+<div id="picker-results" style="margin-top: 24px;"></div>
+</div>
+
+<!-- ==========================================================
+     FLOW: COST TCO
+     ========================================================== -->
+<div class="flow-panel" id="flow-cost">
+<button class="back-btn" onclick="goHome()">← Back to workflows</button>
+<h2>💰 Cloud TCO & Operations Modeling</h2>
+
+<div class="form-row">
+  <div>
+    <label>GPU Architecture</label>
+    <select id="c_gpu">
+      <option value="a100_80_sxm">A100 80GB</option>
+      <option value="h100_sxm">H100 SXM</option>
+      <option value="h200_sxm" selected>H200 SXM</option>
+      <option value="b200_hgx">B200 HGX</option>
+      <option value="b300_ultra">B300 Ultra</option>
+    </select>
+  </div>
+  <div>
+    <label>Nodes (Total GPUs in Cluster)</label>
+    <select id="c_count">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="4" selected>4</option>
+      <option value="8">8</option>
+      <option value="16">16 (Multi-node)</option>
+    </select>
+  </div>
+</div>
+
+<div class="form-row">
+  <div>
+    <label>Hours Active / Day</label>
+    <select id="c_hours">
+      <option value="8">8 hours</option>
+      <option value="12">12 hours</option>
+      <option value="24" selected>24 hours (Always on)</option>
+    </select>
+  </div>
+  <div>
+    <label>Days / Month</label>
+    <select id="c_days">
+      <option value="20">20 days (Workdays)</option>
+      <option value="30" selected>30 days (Full month)</option>
+    </select>
+  </div>
+</div>
+
+<button class="calc-btn" onclick="runCost()">💰 Calculate Operating Expenses</button>
+<div id="cost-results" style="margin-top: 24px;"></div>
+</div>
+
+<!-- ==========================================================
+     FLOW: GPU SPEC SHEETS
+     ========================================================== -->
+<div class="flow-panel" id="flow-specs">
+<button class="back-btn" onclick="goHome()">← Back to workflows</button>
+<h2>📋 Datacenter GPU Specifications</h2>
+<p>Official specs verified for modern datacenter hardware. <strong>Crucial:</strong> All TFLOPS numbers here are <em>Dense</em> (what you actually get for LLM inference), not the artificially inflated Sparse numbers.</p>
+<div class="tip-box"><strong>PCIe vs SXM:</strong> PCIe cards operate at lower power (TDP) resulting in lower clock speeds and TFLOPS compared to their SXM equivalents. More importantly, PCIe cards lack high-speed NVLink fabrics, making them severe bottlenecks for Multi-GPU Tensor Parallelism.</div>
+<div class="spec-grid" id="specGridContainer">
+  <!-- Filled by JS -->
+</div>
+</div>
+
+</div><!-- /.container -->
+
+<script>
+// =========================================================
+// DATA ARCHITECTURE
+// =========================================================
+const GPUS = {
+  a100_40_pcie: { name: 'A100 40GB PCIe', arch: 'Ampere', form: 'PCIe', mem: 40, bw: 1.55, fp16: 312, fp8: null, interconnect: 64, azure: 3.40, runpod: 0.89, lambda: 1.29 },
+  a100_80_pcie: { name: 'A100 80GB PCIe', arch: 'Ampere', form: 'PCIe', mem: 80, bw: 1.93, fp16: 312, fp8: null, interconnect: 64, azure: null, runpod: 1.10, lambda: 1.29 },
+  a100_80_sxm:  { name: 'A100 80GB SXM',  arch: 'Ampere', form: 'SXM', mem: 80, bw: 2.03, fp16: 312, fp8: null, interconnect: 600, azure: 4.10, runpod: 1.19, lambda: 1.50 },
+  h100_pcie:    { name: 'H100 80GB PCIe', arch: 'Hopper', form: 'PCIe', mem: 80, bw: 2.0, fp16: 756, fp8: 1513, interconnect: 128, azure: null, runpod: 1.50, lambda: 2.00 },
+  h100_sxm:     { name: 'H100 80GB SXM',  arch: 'Hopper', form: 'SXM', mem: 80, bw: 3.35, fp16: 989, fp8: 1979, interconnect: 900, azure: 6.98, runpod: 1.99, lambda: 2.49 },
+  h200_nvl:     { name: 'H200 NVL (PCIe)',arch: 'Hopper', form: 'PCIe', mem: 141, bw: 4.8, fp16: 836, fp8: 1671, interconnect: 128, azure: null, runpod: 3.00, lambda: null },
+  h200_sxm:     { name: 'H200 141GB SXM', arch: 'Hopper', form: 'SXM', mem: 141, bw: 4.8, fp16: 989, fp8: 1979, interconnect: 900, azure: 10.60, runpod: 3.59, lambda: 3.49 },
+  b200_hgx:     { name: 'B200 HGX SXM',   arch: 'Blackwell', form: 'SXM', mem: 180, bw: 8.0, fp16: 2250, fp8: 4500, fp4: 9000, interconnect: 1800, azure: 12.50, runpod: 4.99, lambda: 3.49 },
+  b300_ultra:   { name: 'B300 Ultra SXM', arch: 'Blackwell Ultra', form: 'SXM', mem: 288, bw: 8.0, fp16: 2250, fp8: 4500, fp4: 13125, interconnect: 1800, azure: 14.50, runpod: null, lambda: 5.49 }
+};
+
+// activeParamsB drives compute (FLOPs). paramsB + visionExtraB drives memory (VRAM).
+const MODELS = {
+  gemma4_9b:  { name: 'Gemma 4 9B', paramsB: 9, activeParamsB: 9, dmodel: 3584, layers: 42, kvHeads: 8, dHead: 256 },
+  gemma4_27b: { name: 'Gemma 4 27B', paramsB: 27, activeParamsB: 27, dmodel: 4608, layers: 46, kvHeads: 16, dHead: 128 },
+  llama7:     { name: 'Llama 7B', paramsB: 7, activeParamsB: 7, dmodel: 4096, layers: 32, kvHeads: 32, dHead: 128 },
+  llama70:    { name: 'Llama 70B', paramsB: 70, activeParamsB: 70, dmodel: 8192, layers: 80, kvHeads: 8, dHead: 128 },
+  llama405:   { name: 'Llama 405B', paramsB: 405, activeParamsB: 405, dmodel: 16384, layers: 126, kvHeads: 8, dHead: 128 },
+  mixtral:    { name: 'Mixtral 8x7B (MoE)', paramsB: 47, activeParamsB: 13, dmodel: 4096, layers: 32, kvHeads: 8, dHead: 128 },
+  qwenvl7:    { name: 'Qwen2.5-VL 7B', paramsB: 7, activeParamsB: 7, dmodel: 3584, layers: 28, kvHeads: 4, dHead: 128, visionExtraB: 0.675 },
+  qwenvl72:   { name: 'Qwen2.5-VL 72B', paramsB: 72, activeParamsB: 72, dmodel: 8192, layers: 80, kvHeads: 8, dHead: 128, visionExtraB: 0.675 },
+  llava13:    { name: 'LLaVA-1.6 13B', paramsB: 13, activeParamsB: 13, dmodel: 5120, layers: 40, kvHeads: 40, dHead: 128, visionExtraB: 0.3 },
+  llava34:    { name: 'LLaVA-1.6 34B', paramsB: 34, activeParamsB: 34, dmodel: 7168, layers: 60, kvHeads: 56, dHead: 128, visionExtraB: 0.3 }
+};
+
+// =========================================================
+// INIT & NAVIGATION
+// =========================================================
+function initSpecs() {
+  let html = '';
+  for (const [key, gpu] of Object.entries(GPUS)) {
+    html += `
+      <div class="spec-card">
+        <h4>${gpu.name}</h4>
+        <div class="spec-row"><span class="k">Form Factor</span><span class="v">${gpu.form} (Interconnect: ${gpu.interconnect} GB/s)</span></div>
+        <div class="spec-row"><span class="k">Architecture</span><span class="v">${gpu.arch}</span></div>
+        <div class="spec-row"><span class="k">Memory</span><span class="v">${gpu.mem} GB</span></div>
+        <div class="spec-row"><span class="k">Bandwidth</span><span class="v">${gpu.bw} TB/s</span></div>
+        <div class="spec-row"><span class="k">FP16 Dense</span><span class="v">${gpu.fp16} TFLOPS</span></div>
+        <div class="spec-row"><span class="k">FP8 Dense</span><span class="v">${gpu.fp8 ? gpu.fp8 + ' TFLOPS' : '❌ N/A'}</span></div>
+        ${gpu.fp4 ? `<div class="spec-row"><span class="k">FP4 Dense</span><span class="v">${gpu.fp4} TFLOPS</span></div>` : ''}
+      </div>
+    `;
+  }
+  document.getElementById('specGridContainer').innerHTML = html;
+}
+window.onload = initSpecs;
+
+function showFlow(name) {
+  document.getElementById('landing').style.display = 'none';
+  document.querySelectorAll('.flow-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('flow-' + name).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function goHome() {
+  document.getElementById('landing').style.display = 'block';
+  document.querySelectorAll('.flow-panel').forEach(p => p.classList.remove('active'));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function toggleCollapse(el) {
+  el.classList.toggle('open');
+  const body = el.nextElementSibling;
+  if (body) body.classList.toggle('open');
+}
+
+// Usecase Toggle
+function setUsecase(type, prefix) {
+  document.querySelectorAll(`[id^="${prefix}btn_"]`).forEach(b => b.classList.remove('active'));
+  document.getElementById(`${prefix}btn_${type}`).classList.add('active');
+  document.getElementById(`${prefix}usecase`).value = type;
+  
+  if (type === 'chat') {
+    document.getElementById(`${prefix}batch`).value = 16;
+    document.getElementById(`${prefix}context`).value = 4096;
+  } else if (type === 'rag') {
+    document.getElementById(`${prefix}batch`).value = 32;
+    document.getElementById(`${prefix}context`).value = 32768;
+  } else if (type === 'batch') {
+    document.getElementById(`${prefix}batch`).value = 128;
+    document.getElementById(`${prefix}context`).value = 8192;
+  }
+}
+
+// =========================================================
+// CORE PHYSICS & MATH ENGINE
+// =========================================================
+function bytesPerParam(precision) { return precision === 'fp16' ? 2 : (precision === 'fp8' ? 1 : 0.5); }
+
+function calcMemory(model, weightPrecision, kvPrecision, batch, context) {
+  const wbpp = bytesPerParam(weightPrecision);
+  const kvbpp = bytesPerParam(kvPrecision);
+  
+  const totalParamsB = model.paramsB + (model.visionExtraB || 0);
+  const weightGB = totalParamsB * wbpp; 
+  
+  const kvBytesPerToken = 2 * model.layers * model.kvHeads * model.dHead * kvbpp;
+  const kvGB = (kvBytesPerToken * context * batch) / 1e9;
+  
+  // Production reality: Base 2GB CUDA context + 10% fragmentation buffer
+  const overheadGB = Math.max(2, weightGB * 0.10); 
+  return { weightGB, kvGB, overheadGB, totalGB: weightGB + kvGB + overheadGB, kvBytesPerToken };
+}
+
+function calcThroughput(gpu, model, weightPrecision, kvPrecision, batch, context, mem) {
+  let tflops = (weightPrecision === 'fp16' || gpu.fp8 === null) ? gpu.fp16 : gpu.fp8;
+  if (weightPrecision === 'int4') tflops = gpu.fp8 || gpu.fp16; 
+  
+  const wbpp = bytesPerParam(weightPrecision);
+  const activeP = (model.activeParamsB + (model.visionExtraB || 0)) * 1e9;
+  const totalP = (model.paramsB + (model.visionExtraB || 0)) * 1e9;
+  
+  // FLOPs: 2*P + 2*layers*seq*d_model
+  const flopsPerToken = 2 * activeP + 2 * model.layers * context * model.dmodel;
+  
+  // Total bytes loaded per decode step = Weights + KV Cache for entire batch
+  const kvBandwidthBytes = batch * mem.kvBytesPerToken * context;
+  const totalBytesPerStep = (totalP * wbpp) + kvBandwidthBytes;
+  
+  const arithmeticIntensity = flopsPerToken / totalBytesPerStep;
+  const ridgePoint = (tflops * 1e12) / (gpu.bw * 1e12);
+
+  // MFU Dynamic Scaling: Asymptotic curve peaking at max_MFU based on batch size
+  const max_MFU = 0.70;
+  const MFU_decode = Math.min(max_MFU, max_MFU * (1 - Math.exp(-0.05 * batch)));
+  const MFU_prefill = 0.60;
+  
+  // Physics-based Tensor Parallelism Networking Penalty
+  const numGpusNeeded = Math.ceil(mem.totalGB / gpu.mem);
+  let tpPenalty = 1.0;
+  if (numGpusNeeded > 1) {
+    // Comm Time = 2 * ((N-1)/N) * (Activation Size / Interconnect Bandwidth)
+    const actSizeGB = (batch * context * model.dmodel * wbpp) / 1e9;
+    const commTime = 2 * ((numGpusNeeded - 1) / numGpusNeeded) * (actSizeGB / gpu.interconnect);
+    
+    // Compute Time approx
+    const computeTime = (flopsPerToken * batch / model.layers) / (tflops * 1e12 * MFU_decode / numGpusNeeded);
+    
+    // Efficiency = Compute / (Compute + Comm)
+    tpPenalty = Math.max(0.1, computeTime / (computeTime + commTime));
+  }
+  
+  const MBU = 0.85 * tpPenalty; // Max MBU scaled by TP networking penalty
+
+  const prefill = (tflops * 1e12 * MFU_prefill * numGpusNeeded) / flopsPerToken;
+  const decodeCompute = (tflops * 1e12 * MFU_decode * numGpusNeeded) / flopsPerToken;
+  const decodeMemory = (gpu.bw * 1e12 * MBU * numGpusNeeded * batch) / totalBytesPerStep;
+  
+  const decode = Math.min(decodeCompute, decodeMemory);
+  const isMemoryBound = decodeMemory < decodeCompute;
+
+  // Exact Observability Metrics Translation
+  const queueing_delay_ms = 50; 
+  const kv_alloc_ms = 20;
+  const typicalPromptTokens = 500;
+  
+  const ttft_ms = prefill > 0 ? queueing_delay_ms + kv_alloc_ms + ((typicalPromptTokens / prefill) * 1000) : 0;
+  // ITL is correctly scaled per user: (1000 * batch) / total system throughput
+  const itl_ms = decode > 0 ? (1000 * batch) / decode : 0;
+
+  return { 
+    tflops, wbpp, activeP, totalP, flopsPerToken, totalBytesPerStep, arithmeticIntensity, ridgePoint,
+    MFU_prefill, MFU_decode, MBU, tpPenalty,
+    prefill, decode, decodeCompute, decodeMemory, isMemoryBound, 
+    numGpusNeeded, ttft_ms, itl_ms 
+  };
+}
+
+// =========================================================
+// VISUAL ROOFLINE PLOT
+// =========================================================
+function drawRoofline(canvasId, peakTflops, bw, currentAi, currentPerf, isMemoryBound) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  const pad = 50;
+  const w = canvas.width - pad * 2;
+  const h = canvas.height - pad * 2;
+  
+  const ridgeAi = peakTflops / bw;
+  const maxAi = ridgeAi * 2.5;
+  const maxTflops = peakTflops * 1.2;
+  
+  const getX = (ai) => pad + (Math.min(ai, maxAi) / maxAi) * w;
+  const getY = (tflops) => pad + h - (Math.min(tflops, maxTflops) / maxTflops) * h;
+  
+  // draw axes
+  ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, pad + h); ctx.lineTo(pad + w, pad + h);
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.stroke();
+  
+  // memory roof (slope)
+  ctx.beginPath(); ctx.moveTo(getX(0), getY(0)); ctx.lineTo(getX(ridgeAi), getY(peakTflops));
+  ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3; ctx.stroke();
+  
+  // compute roof (flat)
+  ctx.beginPath(); ctx.moveTo(getX(ridgeAi), getY(peakTflops)); ctx.lineTo(getX(maxAi), getY(peakTflops));
+  ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 3; ctx.stroke();
+  
+  // plot point
+  const px = getX(currentAi);
+  const py = getY(currentPerf);
+  ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI*2);
+  ctx.fillStyle = '#ef4444'; ctx.fill();
+  
+  // labels
+  ctx.fillStyle = '#475569'; ctx.font = '12px sans-serif';
+  ctx.fillText('AI (FLOPs/Byte)', canvas.width/2, canvas.height - 15);
+  ctx.save(); ctx.translate(15, canvas.height/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Performance (TFLOPS)', -60, 0); ctx.restore();
+  
+  // point label
+  ctx.fillStyle = '#0f172a'; ctx.font = 'bold 12px sans-serif';
+  ctx.fillText(`Workload AI: ${currentAi.toFixed(1)}`, px + 12, py - 12);
+  ctx.fillStyle = isMemoryBound ? '#065f46' : '#1e40af';
+  
+  // Add simple visual helper text below the point label
+  if(isMemoryBound) {
+      ctx.fillText(`Under Diagonal = Memory Bottleneck`, px + 12, py + 8);
+  } else {
+      ctx.fillText(`Under Flat Top = Compute Bottleneck`, px + 12, py + 8);
+  }
+}
+
+// =========================================================
+// FLOW: SPEED, MATH, & METRICS
+// =========================================================
+function runSpeed() {
+  const gpu = GPUS[document.getElementById('s_gpu').value];
+  const model = MODELS[document.getElementById('s_model').value];
+  const weightPrecision = document.getElementById('s_precision').value;
+  const kvPrecision = document.getElementById('s_kv_precision').value;
+  const batch = parseInt(document.getElementById('s_batch').value);
+  const context = parseInt(document.getElementById('s_context').value);
+
+  if (!batch || batch < 1) { alert("Please enter a valid batch size."); return; }
+  if (!context || context < 1) { alert("Please enter a valid context length."); return; }
+
+  const mem = calcMemory(model, weightPrecision, kvPrecision, batch, context);
+  const tp = calcThroughput(gpu, model, weightPrecision, kvPrecision, batch, context, mem);
+
+  let html = '';
+
+  if (weightPrecision === 'fp8' && gpu.fp8 === null) {
+    html += `<div class="result-warn"><strong>⚠️ Architecture Fallback:</strong> The ${gpu.name} does not natively support FP8 arithmetic. Compute throughput will fall back to FP16 speeds.</div>`;
+  }
+  if (mem.kvGB > mem.weightGB) {
+    html += `<div class="result-warn"><strong>⚠️ KV Cache Exhaustion Risk:</strong> At Context ${context} and Batch ${batch}, the KV Cache (${mem.kvGB.toFixed(1)}GB) exceeds the size of the model weights.</div>`;
+  }
+  if (tp.numGpusNeeded > 8) {
+    html += `<div class="result-error"><strong>❌ Topology Failure:</strong> Requires ${tp.numGpusNeeded} GPUs. You cannot efficiently span Tensor Parallelism beyond a single 8-GPU domain.</div>`;
+    document.getElementById('speed-results').innerHTML = html;
+    return;
+  }
+
+  html += `<h3>Cluster Topology: ${tp.numGpusNeeded}x ${gpu.name} ${tp.numGpusNeeded > 1 ? '(Tensor Parallelism)' : ''}</h3>`;
+  html += `
+    <div class="metric-grid">
+      <div class="result-box box-compute">
+        <div class="metric-val">${Math.round(tp.prefill).toLocaleString()}</div>
+        <div class="metric-label">tok/s — System Prefill</div>
+        <div class="metric-sub">Compute-bound phase. Total prompt tokens processed per sec.</div>
+      </div>
+      <div class="result-box box-memory">
+        <div class="metric-val">${Math.round(tp.decode).toLocaleString()}</div>
+        <div class="metric-label">tok/s — System Decode</div>
+        <div class="metric-sub">${tp.isMemoryBound ? 'Memory-bound phase. Bottlenecked by HBM bandwidth.' : 'Compute-bound. Bottlenecked by TFLOPS.'}</div>
+      </div>
+    </div>
+  `;
+
+  // Observability
+  html += `
+    <h4 style="margin-top: 24px;">Observability SLIs (Per User Experience)</h4>
+    <div class="observability-grid">
+      <div class="obs-card">
+        <div class="obs-val">${tp.ttft_ms.toFixed(0)} ms</div>
+        <div class="obs-label">TTFT (500 tok prompt, incl. queueing)</div>
+      </div>
+      <div class="obs-card">
+        <div class="obs-val">${tp.itl_ms.toFixed(1)} ms/tok</div>
+        <div class="obs-label">Avg Inter-Token Latency (ITL)</div>
+        <div style="font-size:0.75em; color:var(--text-muted); margin-top:4px; font-weight:600;">*Assumes fair scheduling across batch (continuous batching).</div>
+        <div style="font-size:0.75em; color:var(--danger); margin-top:2px; font-weight:700;">*P99 Tail Latency can be 3–10× higher under load. Queueing delay varies from 0ms → several seconds depending on traffic.</div>
+      </div>
+    </div>
+  `;
+
+  // Roofline Plot
+  html += `
+    <h4 style="margin-top: 24px;">Roofline Analysis</h4>
+    <div class="roofline-container">
+      <canvas id="rooflineChart" width="600" height="250"></canvas>
+      <div style="font-size: 0.9em; color: var(--text-muted); margin-top: 10px; font-weight: 600;">
+        👉 Point under the diagonal slope = Memory Bottleneck | 👉 Point under the flat top = Compute Bottleneck
+      </div>
+    </div>
+  `;
+
+  // Explicit Math Breakdown Box
+  html += `
+    <h4 style="margin-top: 24px;">Under the Hood: Engineering Calculation</h4>
+    <div class="math-box">
+      <strong>1. Dynamic MFU (Batch Size Scaling)</strong><br>
+      Utilized MFU = ${(tp.MFU_decode * 100).toFixed(1)}% (Based on Batch=${batch})<br><br>
+
+      <strong>2. Compute Ceiling (TFLOPS * MFU / FLOPs_per_token)</strong><br>
+      = (${tp.tflops} TFLOPS * ${tp.numGpusNeeded} GPUs) * ${tp.MFU_decode.toFixed(2)} / ${(tp.flopsPerToken / 1e9).toFixed(2)} GFLOPs<br>
+      = ${Math.round(tp.decodeCompute).toLocaleString()} tok/s<br><br>
+
+      <strong>3. Memory Ceiling (Bandwidth * MBU / Bytes_Loaded)</strong><br>
+      = (${gpu.bw} TB/s * ${tp.numGpusNeeded} GPUs) * ${(tp.MBU).toFixed(2)} MBU / ${(tp.totalBytesPerStep / 1e9).toFixed(2)} GB<br>
+      = ${Math.round(tp.decodeMemory).toLocaleString()} tok/s<br>
+      <em style="color:var(--text-muted); font-size:0.9em;">* KV bandwidth assumes full attention read. FlashAttention reduces effective memory traffic but remains bandwidth-bound.</em>
+    </div>
+  `;
+
+  let weightNote = model.activeParamsB < model.paramsB ? `MoE Compute uses ${model.activeParamsB}B.` : (model.visionExtraB ? `Base + Vision Encoder.` : `Dense model.`);
+
+  html += `
+    <h4 style="margin-top: 24px;">Pod VRAM Allocation</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Tensor Component</th><th class="center">Allocation</th><th>Production Note</th></tr>
+        <tr><td>Weights (${weightPrecision.toUpperCase()})</td><td class="center num">${mem.weightGB.toFixed(1)} GB</td><td>${weightNote}</td></tr>
+        <tr><td>KV Cache (${kvPrecision.toUpperCase()})</td><td class="center num">${mem.kvGB.toFixed(1)} GB</td><td>Modern models use GQA, reducing KV heads and significantly lowering KV memory.</td></tr>
+        <tr><td>RSS Overhead</td><td class="center num">${mem.overheadGB.toFixed(1)} GB</td><td><strong>Inject jemalloc</strong> to prevent glibc fragmentation bloat.</td></tr>
+        <tr class="best-row"><td><strong>Total Required</strong></td><td class="center num"><strong>${mem.totalGB.toFixed(1)} GB</strong></td><td>Spanning ${tp.numGpusNeeded}x ${gpu.mem}GB GPUs</td></tr>
+      </table>
+    </div>
+  `;
+
+  if (tp.numGpusNeeded > 1) {
+    html += `<div class="result-error" style="margin-top: 10px;"><strong>Physics-Based Networking Penalty:</strong> Because this model spans ${tp.numGpusNeeded} GPUs over a <strong>${gpu.form} (${gpu.interconnect} GB/s)</strong> interconnect, AllReduce synchronizations cause severe latency. Bandwidth efficiency (MBU) was penalized to <strong>${(tp.tpPenalty * 100).toFixed(0)}%</strong>. Real TP efficiency is often lower due to synchronization overhead beyond pure bandwidth cost.</div>`;
+  }
+
+  document.getElementById('speed-results').innerHTML = html;
+  
+  // Render Roofline after HTML is inserted
+  setTimeout(() => {
+    const currentPerf = (tp.decode * tp.flopsPerToken) / 1e12 / tp.numGpusNeeded;
+    drawRoofline('rooflineChart', tp.tflops, gpu.bw, tp.arithmeticIntensity, currentPerf, tp.isMemoryBound);
+  }, 100);
+}
+
+// =========================================================
+// FLOW: PICKER
+// =========================================================
+function runPicker() {
+  const model = MODELS[document.getElementById('p_model').value];
+  const weightPrecision = document.getElementById('p_precision').value;
+  const kvPrecision = document.getElementById('p_kv_precision').value;
+  const batch = parseInt(document.getElementById('p_batch').value);
+  const context = parseInt(document.getElementById('p_context').value);
+  const usecase = document.getElementById('p_usecase').value;
+  
+  if (!batch || !context) { alert("Please enter valid batch and context numbers."); return; }
+
+  const mem = calcMemory(model, weightPrecision, kvPrecision, batch, context);
+  
+  let html = `<div class="info-box">Custom Configuration (Batch ${batch}, Context ${context}) requires <strong>${mem.totalGB.toFixed(1)} GB</strong> of stable VRAM.</div>`;
+
+  const results = [];
+  for (const [key, gpu] of Object.entries(GPUS)) {
+    const numGpus = Math.ceil(mem.totalGB / gpu.mem);
+    if (numGpus > 8) continue; 
+    
+    const tp = calcThroughput(gpu, model, weightPrecision, kvPrecision, batch, context, mem);
+    
+    let bestPrice = Infinity;
+    let provider = '';
+    if (gpu.runpod && gpu.runpod < bestPrice) { bestPrice = gpu.runpod; provider = 'RunPod'; }
+    if (gpu.lambda && gpu.lambda < bestPrice) { bestPrice = gpu.lambda; provider = 'Lambda'; }
+    if (gpu.azure && gpu.azure < bestPrice) { bestPrice = gpu.azure; provider = 'Azure'; }
+    
+    const hourlyTotal = bestPrice * numGpus;
+    
+    let score = tp.decode / hourlyTotal;
+    
+    if (numGpus === 1) score *= 1.5; 
+    if (numGpus > 1 && gpu.form === 'PCIe') score *= 0.5; // Massive penalty for TP over PCIe
+    if (usecase === 'chat' && numGpus > 1) score *= 0.6; // Heavy penalty for multi-gpu chat
+
+    results.push({ gpu, numGpus, tp, hourlyTotal, provider, score });
+  }
+
+  results.sort((a, b) => b.score - a.score);
+
+  if (results.length === 0) {
+    html += `<div class="result-error"><strong>⚠️ No GPU configuration found.</strong> Your model needs more than ${mem.totalGB.toFixed(0)} GB of VRAM, which exceeds a standard 8-GPU domain limit. Try quantizing KV Cache/Weights or lowering the context length.</div>`;
+    document.getElementById('picker-results').innerHTML = html;
+    return;
+  }
+  
+  let summary = "";
+  if (usecase === 'chat') summary = `Best for: Low-latency chat under ${context/1000}K context`;
+  else if (usecase === 'rag') summary = `Best for: High-context RAG/Agent workflows`;
+  else summary = `Best for: Maximum throughput batch processing`;
+
+  if (usecase === 'chat') {
+      html += `<div class="tip-box"><em>* Multi-GPU configs are penalized in scoring for latency-sensitive chat workloads.</em></div>`;
+  }
+
+  results.forEach((r, i) => {
+    const gpuStr = r.numGpus === 1 ? r.gpu.name : `${r.numGpus}× ${r.gpu.name}`;
+    const memStr = r.numGpus === 1 ? `${r.gpu.mem} GB (${((mem.totalGB/r.gpu.mem)*100).toFixed(0)}% used)` : `${r.numGpus * r.gpu.mem} GB total (${r.numGpus}× TP)`;
+    
+    let reasons = [];
+    if (r.numGpus === 1) reasons.push('Fits on a single GPU.');
+    else reasons.push(`Requires Tensor Parallelism across ${r.numGpus} GPUs.`);
+    
+    if (r.numGpus > 1 && r.gpu.form === 'PCIe') reasons.push('⚠️ <em>Warning: PCIe interconnect creates severe TP bottlenecks.</em>');
+    if (r.gpu.bw >= 4.8 && r.gpu.form === 'SXM') reasons.push('High SXM bandwidth ensures fast decode.');
+    
+    let wonReason = "";
+    if (i === 0) {
+        let fitReason = r.numGpus === 1 ? "single GPU fit" : "best multi-GPU scaling";
+        wonReason = `<div style="color:var(--accent); font-weight:700; margin-bottom:8px;">🏆 Won because: Highest throughput per dollar + ${fitReason}</div>`;
+    }
+
+    html += `
+      <div class="rec-card ${i === 0 ? 'best' : ''}">
+        <div class="rec-header">
+          <div class="rec-name">${gpuStr}</div>
+          <div class="rec-price">$${r.hourlyTotal.toFixed(2)}/hr (${r.provider})</div>
+        </div>
+        ${wonReason}
+        <div class="rec-reason">${reasons.join(' ')}</div>
+        <div style="font-size:0.9em; color:var(--info); font-weight:700; margin-bottom:12px;">🎯 ${summary}</div>
+        <div style="display:flex; gap:14px; font-size:0.85em; color:var(--text-muted); margin-top:8px; flex-wrap:wrap;">
+          <span style="background:var(--bg-soft); padding:4px 12px; border-radius:8px; font-weight:700;">💾 ${memStr}</span>
+          <span style="background:var(--bg-soft); padding:4px 12px; border-radius:8px; font-weight:700;">🚀 ~${Math.round(r.tp.decode).toLocaleString()} sys tok/s</span>
+          <span style="background:var(--bg-soft); padding:4px 12px; border-radius:8px; font-weight:700;">📡 ${r.gpu.bw} TB/s</span>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById('picker-results').innerHTML = html;
+}
+
+// =========================================================
+// FLOW: COST
+// =========================================================
+function runCost() {
+  const gpu = GPUS[document.getElementById('c_gpu').value];
+  const count = parseInt(document.getElementById('c_count').value);
+  const hours = parseInt(document.getElementById('c_hours').value);
+  const days = parseInt(document.getElementById('c_days').value);
+
+  const totalHours = hours * days;
+  
+  const providers = [];
+  if (gpu.azure) providers.push({ name: 'Azure', rate: gpu.azure, pill: 'cloud-azure' });
+  if (gpu.runpod) providers.push({ name: 'RunPod', rate: gpu.runpod, pill: 'cloud-runpod' });
+  if (gpu.lambda) providers.push({ name: 'Lambda', rate: gpu.lambda, pill: 'cloud-lambda' });
+
+  providers.forEach(p => {
+    p.monthly = p.rate * count * totalHours;
+  });
+  providers.sort((a, b) => a.monthly - b.monthly);
+  
+  if (providers.length === 0) {
+    document.getElementById('cost-results').innerHTML = `<div class="result-error">Pricing data unavailable for this hardware on selected clouds.</div>`;
+    return;
+  }
+
+  const cheapest = providers[0];
+
+  let html = `
+    <div class="result-box box-compute" style="margin-bottom: 20px;">
+      <div class="metric-val">$${cheapest.monthly.toLocaleString(undefined, {maximumFractionDigits:0})} / mo</div>
+      <div class="metric-label">Cheapest Base Rate (${count}x ${gpu.name} on ${cheapest.name})</div>
+    </div>
+  `;
+
+  html += `
+    <div class="table-wrap">
+      <table>
+        <tr><th>Provider</th><th class="center">Per-GPU rate</th><th class="center">Cluster Hourly</th><th class="center">Monthly Base</th><th class="center">With 20% Prod Buffer</th></tr>
+  `;
+  providers.forEach((p, i) => {
+    const clusterHourly = p.rate * count;
+    const withBuffer = p.monthly * 1.20;
+    html += `
+      <tr${i===0?' class="best-row"':''}>
+        <td><span class="cloud-pill ${p.pill}">${p.name}</span></td>
+        <td class="center num">$${p.rate.toFixed(2)}/hr</td>
+        <td class="center num">$${clusterHourly.toFixed(2)}/hr</td>
+        <td class="center num">$${p.monthly.toLocaleString(undefined, {maximumFractionDigits:0})}</td>
+        <td class="center num" style="color:var(--danger);"><strong>$${withBuffer.toLocaleString(undefined, {maximumFractionDigits:0})}</strong></td>
+      </tr>
+    `;
+  });
+  html += `</table></div>`;
+
+  html += `
+    <div class="result-warn">
+      <strong>⚠️ Predictive Autoscaling Penalty:</strong> Containerizing LLMs requires pulling massive images. Furthermore, loading 100GB+ of weights from disk into HBM is heavily bottlenecked by Storage I/O. Node provisioning (cold starts) takes <strong>10-15 minutes</strong> over the network. Model sharding across nodes multiplies cold start time due to parallel weight loading. To maintain strict SLAs, you must run predictive autoscaling and maintain warm idle nodes. The <em>"With Prod Buffer"</em> column adds a standard <strong>20% penalty</strong> to account for this wasted idle compute.
+    </div>
+    <div class="info-box">
+      <strong>Enterprise Networking Costs:</strong> Note that for very large multi-node clusters, high-speed networking fabrics (InfiniBand/Ethernet switches and transceivers) can rival the cost of the actual GPUs.
+    </div>
+  `;
+
+  document.getElementById('cost-results').innerHTML = html;
+}
+</script>
+</body>
+</html>

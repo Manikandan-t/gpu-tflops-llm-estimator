@@ -1,154 +1,183 @@
-# 🎯 GPU TFLOPS & LLM Throughput Estimator
+# 🚀 GenAI Infrastructure Engineering Manual
 
-## 📖 Welcome — What This Tool Teaches You
+**Interactive LLM infrastructure calculator for throughput, latency, memory, and cost modeling.**
 
-If you've ever stared at NVIDIA’s glossy datasheets claiming *“4,500 TFLOPS!”* and then watched your actual LLM crawl along at 40 tokens per second, this guide is for you.
-
-The gap between headline numbers and real-world performance is massive—often **10× to 50×**. Understanding *why* that gap exists is what separates engineers who choose the right hardware from those who burn through budgets with little to show for it.
+> Stop guessing your GPU setup. Start reasoning from first principles.
 
 ---
 
-## 🎯 Who Is This For?
+## 🧠 What is this?
 
-This tool assumes **zero prior knowledge** of GPU architecture or LLM inference.
+This is a **single-page interactive tool** that helps you:
 
-By the end, you will be able to:
-
-* Understand what a **TFLOP** actually is and how to compute it from hardware specs
-* Choose the right GPU for LLMs ranging from **7B to 405B parameters**
-* Estimate **real-world throughput**, not misleading peak numbers
-* Identify whether your workload is **memory-bound vs compute-bound**
-* Build a **credible Total Cost of Ownership (TCO)** model
-* Avoid the most common (and expensive) mistakes in GPU selection
+* Estimate **LLM throughput (prefill + decode)**
+* Predict **latency metrics (TTFT, ITL)**
+* Calculate **VRAM usage (weights + KV cache)**
+* Understand **memory vs compute bottlenecks**
+* Choose the **right GPU configuration**
+* Model **real-world cloud costs**
 
 ---
 
-## 🧭 How to Use This Tool
+## 🎯 Why this exists
 
-This is not meant to be read linearly.
+Most LLM infra decisions are made using:
 
-* Start with **Fundamentals** for conceptual grounding
-* Use the **Calculator** to experiment and build intuition
-* Refer to **Specs**, **Throughput Math**, and **TCO** when designing real systems
+* vendor benchmarks
+* random configs
+* trial-and-error
 
-Think of this as a **learning tool + reference manual**, not a blog post.
+This leads to:
 
----
-
-## 💡 The One Big Idea You Must Understand
-
-> **For most real LLM inference workloads, memory bandwidth matters more than compute TFLOPS.**
-
-This is the single most important concept in GPU selection.
-
-A GPU with:
-
-* **100 TFLOPS + 4 TB/s bandwidth**
-
-will often outperform:
-
-* **200 TFLOPS + 2 TB/s bandwidth**
-
-This is counterintuitive—but critical.
-
-### Why This Happens
-
-During inference (especially decoding):
-
-* Each generated token requires reading large portions of the model from memory
-* Compute units finish their work quickly
-* Then they **stall, waiting for data**
-
-This makes **memory bandwidth the bottleneck**, not raw compute.
-
-### Real-World Example
-
-* **H100 vs H200**
-
-  * Same compute capability
-  * H200 has significantly higher memory bandwidth
-  * Result: ~**1.9× better performance** on Llama-70B
-
-The only meaningful difference? **Memory bandwidth (4.8 TB/s vs 3.35 TB/s)**.
+* ❌ Over-provisioned GPUs
+* ❌ Poor latency despite high cost
+* ❌ OOM crashes at scale
+* ❌ Misunderstood bottlenecks
 
 ---
 
-## 🧠 Key Takeaway
+### This tool is built on one idea:
 
-For decode-heavy workloads:
-
-> **Bandwidth is the real currency.**
-
-We’ll explore this deeper using the **roofline model** in the Fundamentals section—but keep this idea front and center as you go.
+> LLM performance is governed by **physics**, not guesswork.
 
 ---
 
-This version significantly improves accuracy, coverage, and depth.
+## ⚙️ What problems it solves
 
-### 🔧 Corrections & Accuracy Fixes
+### 💬 Chat API (low latency)
 
-* Fixed **B200 Tensor Core count** (640, not 528)
-* Corrected **RTX PRO 6000 FP16 performance** (~480–500 TFLOPS dense, not 1,805)
-* Proper distinction between **dense vs sparse TFLOPS** across all sections
+* Why is streaming slow?
+* How to reduce ITL?
 
----
+### 🤖 RAG / Agents (long context)
 
-### 🆕 New Hardware Coverage
+* Why does 128K context break?
+* How big is my KV cache really?
 
-* B200A
-* B300 (Blackwell Ultra)
-* GB200 NVL72 rack
-* GB300 NVL72 rack
-* Preview: **Vera Rubin NVL72** (expected H2 2026)
+### 📦 Batch processing
 
----
-
-### 📐 Improved Modeling & Formulas
-
-* Full **FLOPs-per-token derivation**, including:
-
-  * Attention
-  * Feed-forward networks (FFN)
-  * Embeddings
-
-No more oversimplified formulas like:
-
-```
-2 × d² × layers
-```
+* What batch size maximizes throughput?
+* What is my tokens/sec per GPU?
 
 ---
 
-### 📚 New Learning Sections
+## 🔍 Key Concepts Modeled
 
-* **Roofline Model**
+### 1. Prefill vs Decode
 
-  * Visual + interactive explanation
-  * Automatic regime detection (memory vs compute bound)
+* Prefill → **compute-bound**
+* Decode → **memory-bound**
 
-* **TCO Framework**
+### 2. KV Cache Growth
 
-  * Realistic pricing (April 2026)
-  * Infrastructure-level cost modeling
+* Scales with:
+  `batch × context × layers`
 
-* **Quantization Tradeoffs**
+### 3. Roofline Model
 
-  * Real benchmark comparisons
-  * Performance vs accuracy insights
+* Visualizes:
 
-* **Model-to-Hardware Mapping**
+  * Compute ceiling
+  * Memory ceiling
+  * Actual bottleneck
 
-  * Practical selection guidelines
-  * From small (7B) to frontier-scale (405B) models
+### 4. Tensor Parallelism Penalty
+
+* Models real-world:
+
+  * PCIe vs NVLink
+  * AllReduce overhead
+
+### 5. Production Realities
+
+* Fragmentation overhead
+* Autoscaling penalties
+* Cold start I/O limits
 
 ---
 
-## ⚠️ Final Note
+## 🧮 What you can calculate
 
-This tool is designed to build **intuition that sticks**.
+### ⚡ Throughput & Latency
 
-Don’t rush through it.
+* System tokens/sec
+* TTFT (Time to First Token)
+* ITL (Inter-token latency)
 
-Jump between sections, experiment with the calculator, and revisit the reference material when making real decisions.
+### 💾 Memory Usage
 
-Because in this space, **intuition + first-principles thinking** is what saves time, money, and failed deployments.
+* Model weights
+* KV cache
+* Total VRAM required
+
+### 🧭 Hardware Fit
+
+* Single GPU vs Multi-GPU
+* TP scaling impact
+* Interconnect constraints
+
+### 💰 Cost Modeling
+
+* Monthly GPU cost
+* Cloud provider comparison
+* Autoscaling buffer impact
+
+---
+
+## 📊 Features
+
+* 🎯 Workload-based presets (Chat / RAG / Batch)
+* 📈 Roofline visualization
+* 🧠 Physics-based throughput model
+* 🧮 KV cache calculator
+* 🧭 GPU recommendation engine
+* 💰 Cloud TCO estimator
+* 📋 GPU spec sheets (A100 → B300)
+
+---
+
+## ⚠️ Important Disclaimer
+
+This tool provides **first-order estimates** based on:
+
+* Transformer architectures
+* Optimized inference engines (vLLM / TRT-LLM)
+* Dense model assumptions
+
+---
+
+Real-world performance depends on:
+
+* kernel efficiency
+* scheduler behavior
+* request distribution
+* system-level overhead
+
+---
+
+## 🧠 Key Takeaways (If you remember nothing else)
+
+* Decode is **memory-bound**, not compute-bound
+* KV cache can exceed model size
+* Batch size controls throughput **and** latency
+* Multi-GPU ≠ free scaling
+* Bandwidth > TFLOPS (for inference)
+
+---
+
+## 🛠️ Built for
+
+* AI Infra Engineers
+* Backend Engineers moving into GenAI
+* ML Engineers deploying LLMs
+* Platform teams running vLLM / Triton
+
+---
+
+## 🚀 Roadmap
+
+* [ ] Multi-node (pipeline parallelism) modeling
+* [ ] Speculative decoding support
+* [ ] Real trace ingestion (Prometheus / logs)
+* [ ] Autoscaling simulation
+* [ ] VLM-specific memory modeling
